@@ -11,6 +11,8 @@ from fastapi.responses import RedirectResponse
 import os
 from pathlib import Path
 
+from src.searcher import build_student_index, search_students
+
 app = FastAPI(title="Mergington High School API",
               description="API for viewing and signing up for extracurricular activities")
 
@@ -86,6 +88,32 @@ def root():
 @app.get("/activities")
 def get_activities():
     return activities
+
+
+@app.get("/students")
+def get_students():
+    index = build_student_index(activities)
+    return list(index.values())
+
+
+@app.get("/students/{student_id}")
+def get_student(student_id: str):
+    index = build_student_index(activities)
+    key = student_id.strip().upper()
+    student = index.get(key)
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+    return student
+
+
+@app.get("/students/search")
+def students_search(q: str):
+    results = search_students(q, activities)
+    return {
+        "query": q,
+        "total": len(results),
+        "results": results,
+    }
 
 
 @app.post("/activities/{activity_name}/signup")
